@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тест: Екі айнымалысы бар сызықтық теңдеулер жүйесін графиктік тәсілмен шешу</title>
+<style>
+  /* ====== НАСТРОЙКА: вставьте сюда URL веб-приложения Apps Script ====== */
+  :root{
+    --ink:#1d2430; --muted:#5b6574; --line:#d5d9e0; --paper:#ffffff;
+    --bg:#f4f5f7; --accent:#1f3a68; --accent-soft:#e8edf5; --danger:#9b1c1c;
+    --ok:#1e5631;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Times New Roman", Georgia, "PT Serif", serif;
+    font-size:18px; line-height:1.5;
+    -webkit-user-select:none; user-select:none;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:28px 16px 40px}
+  .card{
+    background:var(--paper); border:1px solid var(--line); border-radius:6px;
+    padding:32px 36px;
+  }
+  h1{font-size:26px;margin:0 0 4px;font-weight:700;letter-spacing:.3px;text-align:center}
+  .subtitle{text-align:center;color:var(--muted);margin:0 0 22px;font-size:16px}
+  .meta{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin-bottom:22px}
+  .meta p{margin:4px 0}
+  .meta b{display:inline-block;min-width:150px;color:var(--muted);font-weight:normal}
+  label{display:block;font-size:15px;color:var(--muted);margin:14px 0 6px}
+  input[type=text], select, input.num{
+    width:100%; padding:10px 12px; font-size:17px; font-family:inherit;
+    border:1px solid #b9c0cb; border-radius:4px; background:#fff; color:var(--ink);
+    -webkit-user-select:text; user-select:text;
+  }
+  input:focus, select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .row{display:flex;gap:16px}
+  .row > div{flex:1}
+  .rules{font-size:15px;color:var(--muted);background:#fafbfc;border:1px solid var(--line);border-radius:4px;padding:12px 16px;margin-top:20px}
+  .rules ul{margin:6px 0 0 18px;padding:0}
+  .btn{
+    display:inline-block; padding:11px 28px; font-size:17px; font-family:inherit;
+    border:1px solid var(--accent); background:var(--accent); color:#fff;
+    border-radius:4px; cursor:pointer;
+  }
+  .btn:disabled{background:#c4cad3;border-color:#c4cad3;cursor:not-allowed}
+  .btn.ghost{background:#fff;color:var(--accent)}
+  .actions{margin-top:24px;text-align:right}
+
+  /* Шапка вопроса */
+  .qhead{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:var(--muted);margin-bottom:8px}
+  .timer{font-variant-numeric:tabular-nums;font-family:"Courier New",monospace;font-size:18px;color:var(--ink);border:1px solid var(--line);padding:2px 10px;border-radius:4px}
+  .timer.low{color:var(--danger);border-color:var(--danger)}
+  .progress{height:3px;background:var(--line);margin-bottom:22px}
+  .progress > i{display:block;height:100%;background:var(--accent);width:0}
+  .qtext{font-size:19px;margin:0 0 14px}
+  .qnum{font-weight:700;margin-right:6px}
+  .center{text-align:center;margin:12px 0}
+
+  /* Система уравнений */
+  .sys{display:inline-flex;align-items:center;vertical-align:middle;margin:2px 6px;font-style:italic}
+  .sys .br{font-size:2.6em;line-height:1;font-style:normal;font-weight:200;margin-right:4px;transform:scaleX(.7)}
+  .sys .eqs{display:flex;flex-direction:column;line-height:1.35}
+  .sys.big{font-size:21px}
+
+  svg.graph{display:block;margin:6px auto 4px;max-width:100%;height:auto;background:#fff}
+  .gnote{text-align:center;font-size:14px;color:var(--muted);margin-top:0}
+
+  /* Варианты ответа */
+  .opts{list-style:none;margin:18px 0 0;padding:0}
+  .opts li{
+    border:1px solid var(--line); border-radius:4px; padding:10px 14px; margin-bottom:10px;
+    cursor:pointer; display:flex; align-items:center; gap:12px;
+  }
+  .opts li:hover{background:#fafbfc}
+  .opts li.sel{border-color:var(--accent);background:var(--accent-soft)}
+  .opts .letter{flex:0 0 28px;height:28px;border:1px solid #9aa3b0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .opts li.sel .letter{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .numbox{max-width:260px;margin-top:16px}
+  .hint{font-size:14px;color:var(--muted);margin-top:6px}
+
+  /* Модальное окно */
+  .modal{position:fixed;inset:0;background:rgba(20,26,36,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+  .modal.show{display:flex}
+  .modal .box{background:#fff;max-width:480px;border-radius:6px;padding:26px 28px;border-top:4px solid var(--danger)}
+  .modal h3{margin:0 0 10px;color:var(--danger);font-size:20px}
+
+  .result-table{width:100%;border-collapse:collapse;margin:16px 0}
+  .result-table td{border-bottom:1px solid var(--line);padding:9px 4px}
+  .result-table td:last-child{text-align:right;font-weight:700}
+  .score{font-size:44px;text-align:center;font-weight:700;color:var(--accent);margin:8px 0 0}
+  .status{text-align:center;font-size:15px;color:var(--muted);margin-top:14px}
+  .status.ok{color:var(--ok)} .status.err{color:var(--danger)}
+  .hidden{display:none}
+  @media (max-width:560px){
+    .card{padding:22px 18px}
+    .row{flex-direction:column;gap:0}
+    .meta b{min-width:0;display:block}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ====== СТАРТОВОЕ ОКНО ====== -->
+  <div class="card" id="startScreen">
+    <h1>Тест</h1>
+    <p class="subtitle">Екі айнымалысы бар сызықтық теңдеулер жүйесін графиктік тәсілмен шешу</p>
+    <div class="meta">
+      <p><b>Пәні:</b> Алгебра</p>
+      <p><b>Оқу мақсаты:</b> 7.4.2.4 – екі айнымалысы бар сызықтық теңдеулер жүйесін графиктік тәсілмен шешу</p>
+      <p><b>Мұғалім:</b> математика пәнінің мұғалімі – Кунгозин Даулет Багдашұлы</p>
+    </div>
+
+    <label for="fio">Аты-жөніңіз (тегі, аты)</label>
+    <input type="text" id="fio" autocomplete="off" placeholder="Введите ФИ">
+
+    <div class="row">
+      <div>
+        <label for="cls">Сынып</label>
+        <select id="cls">
+          <option value="">— таңдаңыз —</option>
+          <option value="7Ә">7Ә</option>
+        </select>
+      </div>
+      <div>
+        <label for="variant">Нұсқа</label>
+        <select id="variant">
+          <option value="">— таңдаңыз —</option>
+          <option value="1">1-нұсқа</option>
+          <option value="2">2-нұсқа</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="rules">
+      <b>Тест ережесі:</b>
+      <ul>
+        <li>Тест 10 сұрақтан тұрады, әр сұрақ – 1 балл, барлығы – 10 балл.</li>
+        <li>Әр сұраққа 3 минут беріледі. Уақыт біткенде келесі сұраққа автоматты түрде өтеді.</li>
+        <li>Алдыңғы сұраққа қайта оралуға болмайды.</li>
+        <li>Тест барысында қойындыны (вкладканы) жасыруға немесе басқа терезеге ауысуға болмайды. Жасырған жағдайда бағаңыз <b>1 балға төмендетіледі</b>.</li>
+      </ul>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="startBtn" disabled>Келесі</button>
+    </div>
+  </div>
+
+  <!-- ====== ВОПРОС ====== -->
+  <div class="card hidden" id="quizScreen">
+    <div class="qhead">
+      <span id="qCounter">Сұрақ 1 / 10</span>
+      <span class="timer" id="timer">03:00</span>
+    </div>
+    <div class="progress"><i id="progressBar"></i></div>
+    <div id="qBody"></div>
+    <div class="actions">
+      <button class="btn" id="nextBtn">Келесі</button>
+    </div>
+  </div>
+
+  <!-- ====== РЕЗУЛЬТАТ ====== -->
+  <div class="card hidden" id="resultScreen">
+    <h1>Тест аяқталды</h1>
+    <p class="subtitle" id="resName"></p>
+    <p class="score" id="resScore"></p>
+    <p class="subtitle" style="margin-top:0">қорытынды балл</p>
+    <table class="result-table">
+      <tr><td>Дұрыс жауаптар саны</td><td id="resRaw"></td></tr>
+      <tr><td>Қойындыны жасыру саны</td><td id="resHide"></td></tr>
+      <tr><td>Айыппұл</td><td id="resPenalty"></td></tr>
+      <tr><td>Қорытынды балл</td><td id="resFinal"></td></tr>
+    </table>
+    <p class="status" id="sendStatus">Нәтиже жіберілуде…</p>
+  </div>
+</div>
+
+<!-- ====== ПРЕДУПРЕЖДЕНИЕ ====== -->
+<div class="modal" id="warnModal">
+  <div class="box">
+    <h3>Назар аударыңыз!</h3>
+    <p id="warnText"></p>
+    <p>Егер тест барысында қойындыны жасырсаңыз немесе басқа терезеге ауыссаңыз, <b>бағаңыз 1 балға төмендетіледі</b>. Тест жалғасады.</p>
+    <div class="actions"><button class="btn" id="warnOk">Түсіндім, жалғастыру</button></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   НАСТРОЙКА: вставьте URL веб-приложения Google Apps Script
+   (Развернуть → Новое развертывание → Веб-приложение → URL)
+   ===================================================================== */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwc4P1f_anxvDnmrReMhVl4IABdMrdfS-Z2LT0wgBNmMhNWwUOw7g325hl_trqKiEcm/exec";
+
+const TIME_PER_Q = 180;      // 3 минуты на вопрос
+const PENALTY = 1;           // штраф за сворачивание вкладки
+
+/* ---------- вспомогательные функции разметки ---------- */
+function sys(a, b, big){
+  return `<span class="sys${big ? ' big' : ''}"><span class="br">{</span><span class="eqs"><span>${a}</span><span>${b}</span></span></span>`;
+}
+const M = "−"; // типографский минус
+
+/* ---------- координатная плоскость (SVG) ---------- */
+function graph(lines, point, opts){
+  opts = opts || {};
+  const R = 6, W = 380, pad = 22, u = (W - 2*pad) / (2*R);
+  const px = x => pad + (x + R) * u;
+  const py = y => pad + (R - y) * u;
+  let s = `<svg class="graph" viewBox="0 0 ${W} ${W}" width="${W}" height="${W}" xmlns="http://www.w3.org/2000/svg">`;
+  s += `<defs><clipPath id="clp${opts.id||''}"><rect x="${px(-R)}" y="${py(R)}" width="${2*R*u}" height="${2*R*u}"/></clipPath>
+        <marker id="arr${opts.id||''}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1d2430"/></marker></defs>`;
+  // клетки
+  for(let i = -R; i <= R; i++){
+    s += `<line x1="${px(i)}" y1="${py(-R)}" x2="${px(i)}" y2="${py(R)}" stroke="#dfe3ea" stroke-width="1"/>`;
+    s += `<line x1="${px(-R)}" y1="${py(i)}" x2="${px(R)}" y2="${py(i)}" stroke="#dfe3ea" stroke-width="1"/>`;
+  }
+  // оси
+  s += `<line x1="${px(-R)}" y1="${py(0)}" x2="${px(R)+12}" y2="${py(0)}" stroke="#1d2430" stroke-width="1.4" marker-end="url(#arr${opts.id||''})"/>`;
+  s += `<line x1="${px(0)}" y1="${py(-R)}" x2="${px(0)}" y2="${py(R)-12}" stroke="#1d2430" stroke-width="1.4" marker-end="url(#arr${opts.id||''})"/>`;
+  s += `<text x="${px(R)+6}" y="${py(0)+18}" font-size="15" font-style="italic" font-family="Times New Roman">x</text>`;
+  s += `<text x="${px(0)+8}" y="${py(R)-4}" font-size="15" font-style="italic" font-family="Times New Roman">y</text>`;
+  // подписи делений
+  for(let i = -R+1; i <= R-1; i++){
+    if(i === 0) continue;
+    const lab = (i < 0 ? M + Math.abs(i) : i);
+    s += `<line x1="${px(i)}" y1="${py(0)-3}" x2="${px(i)}" y2="${py(0)+3}" stroke="#1d2430"/>`;
+    s += `<text x="${px(i)}" y="${py(0)+15}" font-size="11" text-anchor="middle" font-family="Times New Roman" fill="#3b4452">${lab}</text>`;
+    s += `<line x1="${px(0)-3}" y1="${py(i)}" x2="${px(0)+3}" y2="${py(i)}" stroke="#1d2430"/>`;
+    s += `<text x="${px(0)-5}" y="${py(i)+4}" font-size="11" text-anchor="end" font-family="Times New Roman" fill="#3b4452">${lab}</text>`;
+  }
+  s += `<text x="${px(0)-5}" y="${py(0)+15}" font-size="12" text-anchor="end" font-family="Times New Roman">O</text>`;
+  // прямые y = kx + b
+  const colors = ["#1f3a68", "#8b1e1e"];
+  (lines || []).forEach((L, idx) => {
+    const x1 = -R - 1, x2 = R + 1;
+    s += `<line clip-path="url(#clp${opts.id||''})" x1="${px(x1)}" y1="${py(L.k*x1 + L.b)}" x2="${px(x2)}" y2="${py(L.k*x2 + L.b)}" stroke="${colors[idx % 2]}" stroke-width="2.2"/>`;
+  });
+  // точка пересечения
+  if(point){
+    s += `<circle cx="${px(point[0])}" cy="${py(point[1])}" r="4.5" fill="#1d2430"/>`;
+  }
+  s += `</svg>`;
+  return s;
+}
+
+/* =====================================================================
+   ВОПРОСЫ. ans — индекс правильного варианта в исходном массиве opts
+   ===================================================================== */
+const VARIANTS = {
+  1: [
+    { type:"mc",
+      text:"Суретте теңдеулер жүйесіне кіретін екі теңдеудің графиктері салынған. Жүйенің шешімін табыңыз.",
+      extra: () => graph([{k:1,b:1},{k:-1,b:3}], [1,2], {id:"a1"}),
+      opts:["(1; 2)","(2; 1)","(0; 1)","(3; 0)"], ans:0 },
+
+    { type:"mc",
+      text:"Теңдеулер жүйесін графиктік тәсілмен шешіңіз:",
+      extra: () => `<div class="center">${sys("x + y = 4", `x ${M} y = 2`, true)}</div>` + graph([{k:-1,b:4},{k:1,b:-2}], [3,1], {id:"a2"}),
+      opts:["(3; 1)","(1; 3)","(4; 0)","(2; 0)"], ans:0 },
+
+    { type:"mc",
+      text:"Теңдеулер жүйесінің неше шешімі бар?",
+      extra: () => `<div class="center">${sys("y = 2x + 1", `y = 2x ${M} 3`, true)}</div>`,
+      opts:["Шешімі жоқ (графиктері параллель)","Бір ғана шешімі бар","Шексіз көп шешімі бар","Екі шешімі бар"], ans:0 },
+
+    { type:"mc",
+      text:"Суреттегі графиктер қай теңдеулер жүйесіне сәйкес келеді?",
+      extra: () => graph([{k:2,b:-1},{k:-1,b:5}], [2,3], {id:"a4"}),
+      opts:[ sys(`y = 2x ${M} 1`, `y = ${M}x + 5`),
+             sys("y = 2x + 1", `y = ${M}x + 5`),
+             sys(`y = ${M}2x ${M} 1`, "y = x + 5"),
+             sys(`y = x ${M} 1`, `y = ${M}2x + 5`) ], ans:0 },
+
+    { type:"mc",
+      text:"Теңдеулер жүйесінің неше шешімі бар?",
+      extra: () => `<div class="center">${sys(`y = 3x ${M} 2`, `6x ${M} 2y = 4`, true)}</div>`,
+      opts:["Шексіз көп шешімі бар (графиктері беттеседі)","Шешімі жоқ","Бір ғана шешімі бар","Екі шешімі бар"], ans:0 },
+
+    { type:"mc",
+      text:"Суретте берілген графиктер бойынша теңдеулер жүйесінің шешімін анықтаңыз.",
+      extra: () => graph([{k:1,b:3},{k:-1,b:-1}], [-2,1], {id:"a6"}),
+      opts:[`(${M}2; 1)`,`(1; ${M}2)`,`(2; ${M}1)`,`(${M}1; 2)`], ans:0 },
+
+    { type:"mc",
+      text:"Екі айнымалысы бар сызықтық теңдеулер жүйесін графиктік тәсілмен шешу дегеніміз –",
+      opts:["әр теңдеудің графигін бір координаталық жазықтықта салып, графиктердің қиылысу нүктесінің координаталарын табу",
+            "бір теңдеудің графигін салып, оның Ox осімен қиылысу нүктесін табу",
+            "әр теңдеудің графигін салып, олардың Oy осімен қиылысу нүктелерін табу",
+            "теңдеулерді қосып, шыққан теңдеудің графигін салу"], ans:0 },
+
+    { type:"mc",
+      text:"k-ның қандай мәнінде теңдеулер жүйесінің шешімі болмайды?",
+      extra: () => `<div class="center">${sys("y = kx + 2", `y = 3x ${M} 1`, true)}</div>`,
+      opts:["k = 3",`k = ${M}3`,"k = 2",`k = ${M}1`], ans:0 },
+
+    { type:"num",
+      text:"Суретте теңдеулер жүйесінің графиктері салынған. Жүйенің шешімі (x<sub>0</sub>; y<sub>0</sub>). x<sub>0</sub> + y<sub>0</sub> қосындысын табыңыз.",
+      extra: () => `<div class="center">${sys(`y = 2x ${M} 5`, `y = ${M}x + 4`, true)}</div>` + graph([{k:2,b:-5},{k:-1,b:4}], [3,1], {id:"a9"}),
+      ans:4 },
+
+    { type:"num",
+      text:"Теңдеулер жүйесін графиктік тәсілмен шешіңіз. Графиктердің қиылысу нүктесінің ординатасын (y мәнін) енгізіңіз.",
+      extra: () => `<div class="center">${sys("y = x + 2", `y = ${M}2x + 8`, true)}</div>` + graph([], null, {id:"a10"}) + `<p class="gnote">Сызба үшін координаталық тор (графиктерді дәптерге салыңыз)</p>`,
+      ans:4 }
+  ],
+
+  2: [
+    { type:"mc",
+      text:"Суретте теңдеулер жүйесіне кіретін екі теңдеудің графиктері салынған. Жүйенің шешімін табыңыз.",
+      extra: () => graph([{k:1,b:-1},{k:-1,b:5}], [3,2], {id:"b1"}),
+      opts:["(3; 2)","(2; 3)",`(0; ${M}1)`,"(5; 0)"], ans:0 },
+
+    { type:"mc",
+      text:"Теңдеулер жүйесін графиктік тәсілмен шешіңіз:",
+      extra: () => `<div class="center">${sys("x + y = 2", `x ${M} y = 4`, true)}</div>` + graph([{k:-1,b:2},{k:1,b:-4}], [3,-1], {id:"b2"}),
+      opts:[`(3; ${M}1)`,`(${M}1; 3)`,`(1; ${M}3)`,"(2; 0)"], ans:0 },
+
+    { type:"mc",
+      text:"Теңдеулер жүйесінің неше шешімі бар?",
+      extra: () => `<div class="center">${sys(`y = ${M}3x + 2`, `y = ${M}3x + 5`, true)}</div>`,
+      opts:["Шешімі жоқ (графиктері параллель)","Бір ғана шешімі бар","Шексіз көп шешімі бар","Екі шешімі бар"], ans:0 },
+
+    { type:"mc",
+      text:"Суреттегі графиктер қай теңдеулер жүйесіне сәйкес келеді?",
+      extra: () => graph([{k:1,b:1},{k:-2,b:4}], [1,2], {id:"b4"}),
+      opts:[ sys("y = x + 1", `y = ${M}2x + 4`),
+             sys(`y = x ${M} 1`, `y = ${M}2x + 4`),
+             sys(`y = ${M}x + 1`, "y = 2x + 4"),
+             sys("y = 2x + 1", `y = ${M}x + 4`) ], ans:0 },
+
+    { type:"mc",
+      text:"Теңдеулер жүйесінің неше шешімі бар?",
+      extra: () => `<div class="center">${sys(`y = ${M}x + 4`, "2x + 2y = 8", true)}</div>`,
+      opts:["Шексіз көп шешімі бар (графиктері беттеседі)","Шешімі жоқ","Бір ғана шешімі бар","Екі шешімі бар"], ans:0 },
+
+    { type:"mc",
+      text:"Суретте берілген графиктер бойынша теңдеулер жүйесінің шешімін анықтаңыз.",
+      extra: () => graph([{k:-1,b:-1},{k:1,b:-5}], [2,-3], {id:"b6"}),
+      opts:[`(2; ${M}3)`,`(${M}3; 2)`,`(${M}2; 3)`,`(3; ${M}2)`], ans:0 },
+
+    { type:"mc",
+      text:"Екі айнымалысы бар сызықтық теңдеулер жүйесінің бір ғана шешімі болады, егер оның теңдеулерінің графиктері:",
+      opts:["қиылысса","параллель болса","беттессе","екеуі де Ox осіне параллель болса"], ans:0 },
+
+    { type:"mc",
+      text:"k-ның қандай мәнінде теңдеулер жүйесінің шешімі болмайды?",
+      extra: () => `<div class="center">${sys(`y = kx ${M} 4`, `y = ${M}2x + 1`, true)}</div>`,
+      opts:[`k = ${M}2`,"k = 2",`k = ${M}4`,"k = 1"], ans:0 },
+
+    { type:"num",
+      text:"Суретте теңдеулер жүйесінің графиктері салынған. Жүйенің шешімі (x<sub>0</sub>; y<sub>0</sub>). x<sub>0</sub> + y<sub>0</sub> қосындысын табыңыз.",
+      extra: () => `<div class="center">${sys(`y = x ${M} 3`, `y = ${M}2x + 3`, true)}</div>` + graph([{k:1,b:-3},{k:-2,b:3}], [2,-1], {id:"b9"}),
+      ans:1 },
+
+    { type:"num",
+      text:"Теңдеулер жүйесін графиктік тәсілмен шешіңіз. Графиктердің қиылысу нүктесінің ординатасын (y мәнін) енгізіңіз.",
+      extra: () => `<div class="center">${sys(`y = 2x ${M} 1`, `y = ${M}x + 5`, true)}</div>` + graph([], null, {id:"b10"}) + `<p class="gnote">Сызба үшін координаталық тор (графиктерді дәптерге салыңыз)</p>`,
+      ans:3 }
+  ]
+};
+
+/* ---------- состояние ---------- */
+const state = {
+  fio:"", cls:"", variant:"", questions:[], idx:0,
+  answers:[], timeLeft:TIME_PER_Q, timerId:null,
+  hideCount:0, running:false, startedAt:null, finished:false
+};
+const $ = id => document.getElementById(id);
+const LETTERS = ["A","B","C","D"];
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ---------- стартовое окно ---------- */
+function checkStart(){
+  const ok = $("fio").value.trim().length >= 3 && $("cls").value && $("variant").value;
+  $("startBtn").disabled = !ok;
+}
+["fio","cls","variant"].forEach(id => {
+  $(id).addEventListener("input", checkStart);
+  $(id).addEventListener("change", checkStart);
+});
+
+$("startBtn").addEventListener("click", () => {
+  state.fio = $("fio").value.trim().replace(/\s+/g, " ");
+  state.cls = $("cls").value;
+  state.variant = $("variant").value;
+  // перемешиваем варианты ответов, запоминая правильный
+  state.questions = VARIANTS[state.variant].map(q => {
+    if(q.type !== "mc") return q;
+    const order = shuffle(q.opts.map((_, i) => i));
+    return Object.assign({}, q, { order: order, correctPos: order.indexOf(q.ans) });
+  });
+  state.answers = new Array(state.questions.length).fill(null);
+  state.idx = 0;
+  state.running = true;
+  state.startedAt = new Date();
+  $("startScreen").classList.add("hidden");
+  $("quizScreen").classList.remove("hidden");
+  renderQuestion();
+});
+
+/* ---------- вопрос ---------- */
+function renderQuestion(){
+  const q = state.questions[state.idx];
+  const n = state.questions.length;
+  $("qCounter").textContent = `Сұрақ ${state.idx + 1} / ${n}`;
+  $("progressBar").style.width = (state.idx / n * 100) + "%";
+  $("nextBtn").textContent = state.idx === n - 1 ? "Тестті аяқтау" : "Келесі";
+
+  let h = `<p class="qtext"><span class="qnum">${state.idx + 1}.</span>${q.text}</p>`;
+  if(q.extra) h += q.extra();
+
+  if(q.type === "mc"){
+    h += `<ul class="opts">`;
+    q.order.forEach((orig, pos) => {
+      h += `<li data-pos="${pos}"><span class="letter">${LETTERS[pos]}</span><span>${q.opts[orig]}</span></li>`;
+    });
+    h += `</ul>`;
+  } else {
+    h += `<div class="numbox"><label for="numAns">Жауабыңызды сан түрінде енгізіңіз:</label>
+          <input class="num" id="numAns" type="text" inputmode="decimal" autocomplete="off" placeholder="Жауап">
+          <div class="hint">Теріс санды «−» белгісімен жазыңыз.</div></div>`;
+  }
+  $("qBody").innerHTML = h;
+
+  if(q.type === "mc"){
+    $("qBody").querySelectorAll(".opts li").forEach(li => {
+      li.addEventListener("click", () => {
+        $("qBody").querySelectorAll(".opts li").forEach(x => x.classList.remove("sel"));
+        li.classList.add("sel");
+        state.answers[state.idx] = Number(li.dataset.pos);
+      });
+    });
+  } else {
+    const inp = $("numAns");
+    inp.addEventListener("input", () => {
+      inp.value = inp.value.replace(/[^0-9.,\-−]/g, "");
+      state.answers[state.idx] = inp.value.trim() === "" ? null : inp.value.trim();
+    });
+    inp.addEventListener("keydown", e => { if(e.key === "Enter") nextQuestion(); });
+  }
+  startTimer();
+  window.scrollTo(0, 0);
+}
+
+function startTimer(){
+  clearInterval(state.timerId);
+  state.timeLeft = TIME_PER_Q;
+  drawTimer();
+  state.timerId = setInterval(() => {
+    state.timeLeft--;
+    drawTimer();
+    if(state.timeLeft <= 0){
+      clearInterval(state.timerId);
+      nextQuestion();
+    }
+  }, 1000);
+}
+function drawTimer(){
+  const t = Math.max(0, state.timeLeft);
+  const m = String(Math.floor(t / 60)).padStart(2, "0");
+  const s = String(t % 60).padStart(2, "0");
+  $("timer").textContent = `${m}:${s}`;
+  $("timer").classList.toggle("low", t <= 30);
+}
+
+$("nextBtn").addEventListener("click", nextQuestion);
+function nextQuestion(){
+  if(!state.running) return;
+  clearInterval(state.timerId);
+  if(state.idx < state.questions.length - 1){
+    state.idx++;
+    renderQuestion();
+  } else {
+    finishTest();
+  }
+}
+
+/* ---------- проверка ---------- */
+function parseNum(v){
+  if(v === null || v === undefined) return NaN;
+  return parseFloat(String(v).replace(/−/g, "-").replace(",", "."));
+}
+function isCorrect(q, a){
+  if(a === null) return false;
+  if(q.type === "mc") return a === q.correctPos;
+  return Math.abs(parseNum(a) - q.ans) < 1e-9;
+}
+
+/* ---------- контроль сворачивания вкладки ---------- */
+document.addEventListener("visibilitychange", () => {
+  if(!state.running) return;
+  if(document.hidden){
+    state.hideCount++;
+  } else {
+    $("warnText").innerHTML = `Сіз тест барысында қойындыны жасырдыңыз немесе басқа терезеге ауыстыңыз. Жасыру саны: <b>${state.hideCount}</b>.`;
+    $("warnModal").classList.add("show");
+  }
+});
+$("warnOk").addEventListener("click", () => $("warnModal").classList.remove("show"));
+
+/* ---------- завершение ---------- */
+function finishTest(){
+  state.running = false;
+  state.finished = true;
+  clearInterval(state.timerId);
+  $("warnModal").classList.remove("show");
+
+  const n = state.questions.length;
+  let raw = 0;
+  const detail = state.questions.map((q, i) => {
+    const a = state.answers[i];
+    const ok = isCorrect(q, a);
+    if(ok) raw++;
+    let shown;
+    if(a === null) shown = "—";
+    else if(q.type === "mc") shown = LETTERS[a];
+    else shown = a;
+    return `${i + 1}:${shown}${ok ? "+" : "−"}`;
+  }).join("; ");
+
+  const penalty = state.hideCount > 0 ? PENALTY : 0;
+  const finalScore = Math.max(0, raw - penalty);
+  const minutes = Math.round((new Date() - state.startedAt) / 6000) / 10;
+
+  $("quizScreen").classList.add("hidden");
+  $("resultScreen").classList.remove("hidden");
+  $("resName").textContent = `${state.fio}, ${state.cls} сынып, ${state.variant}-нұсқа`;
+  $("resScore").textContent = `${finalScore} / ${n}`;
+  $("resRaw").textContent = `${raw} / ${n}`;
+  $("resHide").textContent = state.hideCount;
+  $("resPenalty").textContent = penalty ? `${M}${penalty} балл` : "жоқ";
+  $("resFinal").textContent = `${finalScore} / ${n}`;
+
+  // локальный счётчик попыток (на случай отсутствия связи)
+  let localAttempts = 1;
+  try{
+    const key = "attempts_7424_" + state.fio.toLowerCase() + "_" + state.cls;
+    localAttempts = (parseInt(localStorage.getItem(key) || "0", 10) || 0) + 1;
+    localStorage.setItem(key, String(localAttempts));
+  }catch(e){}
+
+  sendResult({
+    fio: state.fio,
+    cls: state.cls,
+    variant: state.variant,
+    raw: raw,
+    penalty: penalty,
+    score: finalScore,
+    max: n,
+    hidden: state.hideCount > 0 ? "Иә" : "Жоқ",
+    hideCount: state.hideCount,
+    localAttempts: localAttempts,
+    minutes: minutes,
+    detail: detail,
+    topic: "7.4.2.4 Сызықтық теңдеулер жүйесін графиктік тәсілмен шешу"
+  });
+}
+
+function sendResult(data, attempt){
+  attempt = attempt || 1;
+  const st = $("sendStatus");
+  if(!SCRIPT_URL || SCRIPT_URL.indexOf("http") !== 0){
+    st.textContent = "Нәтиже жіберілмеді: Apps Script сілтемесі көрсетілмеген. Мұғалімге хабарлаңыз.";
+    st.className = "status err";
+    return;
+  }
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(data)
+  }).then(() => {
+    st.textContent = "Нәтиже мұғалімге сәтті жіберілді.";
+    st.className = "status ok";
+  }).catch(() => {
+    if(attempt < 3){
+      st.textContent = `Байланыс қатесі, қайта жіберілуде (${attempt + 1}/3)…`;
+      setTimeout(() => sendResult(data, attempt + 1), 2500);
+    } else {
+      st.innerHTML = `Нәтиже жіберілмеді. Интернетті тексеріп, <button class="btn ghost" id="retryBtn" style="padding:4px 14px;font-size:15px">қайта жіберу</button> батырмасын басыңыз.`;
+      st.className = "status err";
+      $("retryBtn").addEventListener("click", () => sendResult(data, 1));
+    }
+  });
+}
+
+/* защита от случайного закрытия во время теста */
+window.addEventListener("beforeunload", e => {
+  if(state.running){ e.preventDefault(); e.returnValue = ""; }
+});
+/* запрет копирования и контекстного меню */
+document.addEventListener("contextmenu", e => { if(state.running) e.preventDefault(); });
+document.addEventListener("copy", e => { if(state.running) e.preventDefault(); });
+</script>
+</body>
+</html>
